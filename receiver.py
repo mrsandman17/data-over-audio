@@ -6,76 +6,61 @@ import pyaudio
 import wave
 import struct
 import numpy as np
+from recorder import Recorder
 
 
-CHUNK = 1024
-FORMAT = pyaudio.paInt16
-CHANNELS = 1
-SAMPLE_RATE = 44100
-RECORD_SECONDS = 10
-WAVE_OUTPUT_FILENAME = "test_wav.wav"
-SINGLE_FREQUENCY_DURATION = 0.5
+class WavDataReceiver():
 
-def record():
-    p = pyaudio.PyAudio()
-    stream = p.open(format=FORMAT,
-                    channels=CHANNELS,
-                    rate=SAMPLE_RATE,
-                    input=True,
-                    frames_per_buffer=CHUNK)
+    def __init__(self, wav_file_name, sample_rate, single_freq_duration):
+        self.wav_file_name = wav_file_name
+        self.sample_rate = sample_rate
+        self.single_freq_duration = single_freq_duration
 
-    print("* recording")
+    def receive_data(self):
+        wav_file = wave.open(self.wav_file_name, 'r')
+        data_size = int(self.sample_rate * self.single_freq_duration)
+        for freq in self._receive_data_frames(wav_file, data_size, wav_file.getnframes()):
+            print(freq)
+        wav_file.close()
 
-    frames = []
+    def _receive_data_frames(self, wav_file, data_size, frames_num):
+        """
+        generates a freq
+        """
+        # get the number of frequencies in the message
+        frequencies_num = int(frames_num / data_size)
+        for freq_data in range(frequencies_num):
+            data = wav_file.readframes(data_size)
+            yield self._get_freq(data, data_size)
 
-    for i in range(0, int(SAMPLE_RATE / CHUNK * RECORD_SECONDS)):
-        data = stream.read(CHUNK)
-        frames.append(data)
-
-    print("* done recording")
-
-    stream.stop_stream()
-    stream.close()
-    p.terminate()
-    wf = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
-    wf.setnchannels(CHANNELS)
-    wf.setsampwidth(p.get_sample_size(FORMAT))
-    wf.setframerate(SAMPLE_RATE)
-    wf.writeframes(b''.join(frames))
-    wf.close()
-
-def get_freq():
-
-    frate = 44100.0
-    data_size = int(frate / SINGLE_FREQUENCY_DURATION)
-    wav_file = wave.open(WAVE_OUTPUT_FILENAME, 'r')
-    data = wav_file.readframes(data_size)
-    wav_file.close()
-    # convert data_size frames of data in short
-    data = struct.unpack('{n}h'.format(n=data_size), data)
-    data = np.array(data)
-
-    w = np.fft.fft(data)
-    freqs = np.fft.fftfreq(len(w))
-    print(freqs.min(), freqs.max())
-    # (-0.5, 0.499975)
-
-    # Find the peak in the coefficients
-    idx = np.argmax(np.abs(w))
-    freq = freqs[idx]
-    freq_in_hertz = abs(freq * frate)
-    print(freq_in_hertz)
-    # 439.8975
+    def _get_freq(self, data, data_size):
+        """
+        converts data of size: data_size to a single frequency
+        """
+        # Convert data_size frames of byte data (Short)
+        data = struct.unpack('{n}h'.format(n=data_size), data)
+        data = np.array(data)
+        w = np.fft.fft(data)
+        freqs = np.fft.fftfreq(len(w))
+        # Find the peak in the coefficients
+        idx = np.argmax(np.abs(w))
+        freq = freqs[idx]
+        freq_in_hertz = abs(freq * self.sample_rate)
+        return freq_in_hertz
 
 
 def main():
-    pass
-    get_freq()
-    # todo: read a frequnciey manually
-    # todo: read a few frequencies
+    # # Set up recorder
+    # wav_recorder = Recorder(pyaudio.paInt16, 44100, 1024)
+    # # Record 10 sec
+    # wav_recorder.record_to_wav("test_wav.wav", 10)
+    data_receiver = WavDataReceiver("test_wav.wav", 44100, 0.5)
+    data_receiver.receive_data()
+
+
     # todo: convert a frequencey to hex
-    # find the first frequency
-    # assamble  frequencies array
+    # todo: sync with the first frequency of the message
+    # assemble frequencies array
     # convert the frequencies array to hex
     # convert hex to chars
 
