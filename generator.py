@@ -7,27 +7,20 @@ import struct
 #todo: add tests
 
 
-class WavGenerator():
+class WavDataGenerator():
 
-    def __init__(self, single_freq_duration=2.0, sample_rate=44100):
+    def __init__(self, single_freq_duration=1.0, sample_rate=44100):
         self.single_freq_duration = single_freq_duration
         self.sample_rate = sample_rate
         # Get the freq dict
-        self.freq_dict = self._get_freq_dict(200, 20, "hex")
+        self.freq_dict = self._get_freq_dict(80, 40)
 
-    def _get_freq_dict(self, freq_delimiter, start_freq, mode):
+    def _get_freq_dict(self, start_freq, freq_difference):
         """
         :param freq_delimiter: The delimiter between every 2 frequencies.
-        :param mode:  hex: 16 digits
-                      bin: 2 digits
         """
-        if mode is "hex":
-            digits = 16
-        elif mode is "bin":
-            digits = 2
-        else:
-            raise ValueError("illegal mode")
-        return {hex(digit):start_freq + freq_delimiter * digit for digit in range(digits)}
+        digits = 16
+        return {hex(digit):start_freq + freq_difference * digit for digit in range(digits)}
 
     def generate(self, data, output_file):
         """
@@ -51,6 +44,7 @@ class WavGenerator():
         for c in hex_data:
             # Convert each char to a freq and add to freq_list
             freq_lst.append(self.freq_dict['0x' + c])
+        print(freq_lst)
         # Generate a sin wave for each freq
         for freq in freq_lst:
             angular_freq = freq * math.pi * 2
@@ -77,8 +71,8 @@ class WavGenerator():
 
 def main():
     # A simple test case
-    generator = WavGenerator(single_freq_duration=0.5, sample_rate=44100)
-    generator.generate("test", "test_wav.wav")
+    generator = WavDataGenerator(single_freq_duration=0.5, sample_rate=44100)
+    generator.generate("amit", "test_wav.wav")
 
 if __name__ == "__main__":
     main()
