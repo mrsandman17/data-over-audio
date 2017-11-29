@@ -1,7 +1,3 @@
-"""PyAudio example: Record a few seconds of audio and save to a WAVE file."""
-
-import matplotlib.pyplot as plt
-from scipy.fftpack import fft
 import wave
 import struct
 import numpy as np
@@ -76,22 +72,6 @@ class WavDataDecoder():
         wav_file.close()
         return freq_lst
 
-    def _read_data_frequencies(self, wav_file, frames_num):
-        # Change the chunk of data to read
-        data_size = int(self.synchronizer.sample_rate * self.synchronizer.single_freq_duration)
-        # Read data frames
-        prev_freq = 0
-        freq_lst = []
-        # read until the end of file
-        for freq in self._receive_frames(wav_file, data_size, frames_num):
-            # reached end of data
-            if prev_freq == self.synchronizer.sync_freq and freq == self.synchronizer.sync_freq:
-                break
-            prev_freq = freq
-            if freq != self.synchronizer.sync_freq:
-                freq_lst.append(int(freq))
-        return freq_lst
-
     def _read_until_data(self, wav_file):
         # read in small chunks to look for the sync frequency
         frames_red = 0
@@ -109,6 +89,22 @@ class WavDataDecoder():
                 frames_red += data_size
                 return frames_red
         return frames_red
+
+    def _read_data_frequencies(self, wav_file, frames_num):
+        # Change the chunk of data to read
+        data_size = int(self.synchronizer.sample_rate * self.synchronizer.single_freq_duration)
+        # Read data frames
+        prev_freq = 0
+        freq_lst = []
+        for freq in self._receive_frames(wav_file, data_size, frames_num):
+            if prev_freq == self.synchronizer.sync_freq and freq == self.synchronizer.sync_freq:
+                # reached end of data
+                break
+            prev_freq = freq
+            if freq != self.synchronizer.sync_freq:
+                # freq is a data frequency
+                freq_lst.append(int(freq))
+        return freq_lst
 
     def _receive_frames(self, wav_file, data_size, frames_num):
         """
@@ -135,7 +131,4 @@ class WavDataDecoder():
         freq_in_hertz = abs(freq * self.synchronizer.sample_rate)
         return freq_in_hertz
 
-
-#todo: split to example files
 #todo: configure logger so it isn't required
-#todo: review comments

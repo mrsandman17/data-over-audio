@@ -2,11 +2,6 @@ import math
 import wave
 import struct
 import binascii
-import logging
-import os
-import logging.config
-import json
-from synchronizer import Synchronizer
 
 #todo: replace globals with class variables
 #todo: add logging
@@ -29,8 +24,10 @@ class WavDataEncoder():
         logger.info("generating wav file based on data:\n'{0}'".format(data))
         logger.info("Preparing headers for wav file: {0}".format(output_file))
         wf = wave.open(output_file, "w")
-        wf.setnchannels(1)  # mono
-        wf.setsampwidth(2) # 2 bytes sample width
+        # Mono channel
+        wf.setnchannels(1)
+        # 2 bytes sample width
+        wf.setsampwidth(2)
         wf.setframerate(self.synchronizer.sample_rate)
         logger.debug("Converting data to hex".format(data))
         # Convert data to hex representation
