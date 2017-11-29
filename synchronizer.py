@@ -1,14 +1,12 @@
 
 class Synchronizer():
 # Holds data and functionality shared between generator and receiver
-    def __init__(self, sample_rate, single_freq_duration, min_freq, max_freq, freq_difference, sync_freq, sync_repeat):
+    def __init__(self, sample_rate, single_freq_duration, min_freq, freq_difference, sync_freq, sync_repeat):
         self.sample_rate =sample_rate
         # The duration each freq is played
         self.single_freq_duration = single_freq_duration
         # Min freq to use
         self.min_freq = min_freq
-        # Max freq to use
-        self.max_freq = max_freq
         # Difference between every 2 consecutive frequencies
         self.freq_difference = freq_difference
         # A unique freq, used to signal sync

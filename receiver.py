@@ -12,12 +12,13 @@ from synchronizer import Synchronizer
 
 class WavDataReceiver():
 
-    def __init__(self, synchronizer, sync_search_chunk=10000, allowed_freq_deviation=5):
+    def __init__(self, synchronizer, sync_search_chunk, sync_freq_deviation, auto_correct_frequencies):
         self.synchronizer = synchronizer
         # The chunk of data to look for the first sync frequency
         self.sync_search_chunk = sync_search_chunk
         # Defines the range in which the sync frequency is accepted
-        self.allowed_freq_deviation = allowed_freq_deviation
+        self.sync_freq_deviation = sync_freq_deviation
+        self.auto_correct_frequencies = auto_correct_frequencies
         # Get the freq dict: {Freq: hex}
         self.hex_dict = synchronizer.get_freq2hex_dict()
 
@@ -25,13 +26,35 @@ class WavDataReceiver():
         # Read the bytes data to frequencies
         freq_lst = self._read_frequencies(wav_file)
         print(freq_lst)
+        data = self._convert_to_str(freq_lst)
+        return data
+
+    def _convert_to_str(self, freq_lst):
         # Convert every frequency to hex
-        hexed_data = [self.hex_dict[freq][2:] for freq in freq_lst]
+        hexed_data = ""
+        for freq in freq_lst:
+            if self.auto_correct_frequencies:
+                # Get the closest freq in hex_dict
+                corrected_freq = min(self.hex_dict.keys(), key=lambda possible_freq: abs(possible_freq - freq))
+                hexed_data += self.hex_dict[corrected_freq][2:]
+            else:
+                try:
+                    hexed_data += self.hex_dict[freq][2:]
+                # Frequency is unmapped
+                except KeyError:
+                    # Drop hex digits that translates to an unknown char
+                    hexed_data += "e0"
         # Join 2 consecutive hex digits (2 hex digits = char)
         hexed_data = [i + j for i,j in zip(hexed_data[::2], hexed_data[1::2])]
         print(hexed_data)
-        data = "".join([binascii.unhexlify(c).decode() for c in hexed_data])
-        return data
+        # convert chars in hex format back to ascii
+        assembled_data = ""
+        for char_hex in hexed_data:
+            try:
+                assembled_data += binascii.unhexlify(char_hex).decode()
+            except UnicodeDecodeError:
+                assembled_data += "?c?"
+        return assembled_data
 
     def _read_frequencies(self, wav_file):
         wav_file = wave.open(wav_file, 'r')
@@ -65,8 +88,8 @@ class WavDataReceiver():
         for freq in self._receive_frames(wav_file, self.sync_search_chunk, wav_file.getnframes()):
             frames_red += self.sync_search_chunk
             # Calculate the allowed range
-            min_sync_freq = self.synchronizer.sync_freq - self.allowed_freq_deviation
-            max_sync_freq = self.synchronizer.sync_freq + self.allowed_freq_deviation
+            min_sync_freq = self.synchronizer.sync_freq - self.sync_freq_deviation
+            max_sync_freq = self.synchronizer.sync_freq + self.sync_freq_deviation
             # If the freq matches allowed range
             if min_sync_freq < freq < max_sync_freq:
                 # Read until the beginning of data
@@ -103,28 +126,28 @@ class WavDataReceiver():
 
 
 def main():
-    output_file = "test_wav_recorded_1.wav"
-    wav_recorder = Recorder(record_format=pyaudio.paInt16, channels=1, sample_rate=44100, chunk_size=1024)
-    # Record 10 sec
-    wav_recorder.record_to_wav(output_file, 25)
+    output_file = r"generated_audio_samples\rec_sample_safe_config.wav"
+    wav_recorder = Recorder(record_format=pyaudio.paInt16,
+                            channels=1,
+                            sample_rate=44100,
+                            chunk_size=1024)
+    # Record
+    wav_recorder.record_to_wav(output_file, 20)
     synchronizer = Synchronizer(sample_rate=44100,
                                 single_freq_duration=0.5,
                                 min_freq=120,
-                                max_freq=6000,
-                                freq_difference=40,
+                                freq_difference=50,
                                 sync_freq=80,
                                 sync_repeat=2)
 
-    data_receiver = WavDataReceiver(synchronizer, sync_search_chunk=10000, allowed_freq_deviation=5)
-    print(data_receiver.receive(output_file))
+    data_receiver = WavDataReceiver(synchronizer,
+                                    sync_search_chunk=10000,
+                                    sync_freq_deviation=5,
+                                    auto_correct_frequencies=True)
 
-    # todo: testing
+    print(data_receiver.receive(output_file))
     #todo: logging
-    #todo: exception handling
-    #todo: freq KeyError exception handling
-    # assemble frequencies array
-    # convert the frequencies array to hex
-    # convert hex to chars
+
 
 if __name__ == "__main__":
     main()

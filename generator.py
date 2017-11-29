@@ -1,6 +1,7 @@
 import math
 import wave
 import struct
+import binascii
 from synchronizer import Synchronizer
 
 #todo: replace globals with class variables
@@ -23,14 +24,13 @@ class WavDataGenerator():
         """
 
         # Prepare wave file
-        #todo: add exception handling
-        # todo: rethink hex conversions and using binascii
+        #todo: rethink hex conversions and using binascii
         wf = wave.open(output_file, "w")
         wf.setnchannels(1)  # mono
         wf.setsampwidth(2) # 2 bytes sample width
         wf.setframerate(self.synchronizer.sample_rate)
         # Convert data to hex representation
-        hex_data = data.encode().hex()
+        hex_data = binascii.hexlify(data.encode()).decode()
         # freq_lst holds the real audio freq for each hex digit
         freq_lst = []
         # Convert str to matching freq
@@ -71,16 +71,16 @@ class WavDataGenerator():
 
 
 def main():
+    output_file = r"generated_audio_samples\sample_safe_config.wav"
     # A simple test case
     synchronizer = Synchronizer(sample_rate=44100,
                                 single_freq_duration=0.5,
                                 min_freq=120,
-                                max_freq=6000,
-                                freq_difference=40,
+                                freq_difference=50,
                                 sync_freq=80,
                                 sync_repeat=2)
     generator = WavDataGenerator(synchronizer)
-    generator.generate("poopi_butt_hole", "test_wav.wav")
+    generator.generate("poopi_butt_hole", output_file)
 
 if __name__ == "__main__":
     main()
