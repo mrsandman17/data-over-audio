@@ -1,8 +1,6 @@
 import pyaudio
 import wave
 
-
-
 class Recorder():
 
     def __init__(self, record_format, channels, sample_rate,chunk_size=1024):
@@ -20,15 +18,11 @@ class Recorder():
                         frames_per_buffer=self.chunk_size)
 
         print("* recording")
-
         frames = []
-
         for i in range(0, int(self.sample_rate / self.chunk_size * record_time)):
             data = stream.read(self.chunk_size)
             frames.append(data)
-
         print("* done recording")
-
         stream.stop_stream()
         stream.close()
         p.terminate()
