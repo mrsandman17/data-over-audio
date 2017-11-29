@@ -1,5 +1,8 @@
-import pyaudio
+import logging
 import wave
+
+import pyaudio
+
 
 class Recorder():
 
@@ -9,7 +12,7 @@ class Recorder():
         self.sample_rate = sample_rate
         self.chunk_size = chunk_size
 
-    def record_to_wav(self, logger, output_file_name, record_time):
+    def record_to_wav(self, output_file_name, record_time):
         p = pyaudio.PyAudio()
         stream = p.open(format=self.record_format,
                         channels=self.channels,
@@ -17,20 +20,20 @@ class Recorder():
                         input=True,
                         frames_per_buffer=self.chunk_size)
 
-        logger.info("Recording {0} seconds to {1}".format(record_time, output_file_name))
+        logging.info("Recording {0} seconds to {1}".format(record_time, output_file_name))
         frames = []
         for i in range(0, int(self.sample_rate / self.chunk_size * record_time)):
             data = stream.read(self.chunk_size)
             frames.append(data)
-        logger.info("Done recording")
+        logging.info("Done recording")
         stream.stop_stream()
         stream.close()
         p.terminate()
-        logger.info("Writing wav file")
+        logging.info("Writing wav file")
         wf = wave.open(output_file_name, 'wb')
         wf.setnchannels(self.channels)
         wf.setsampwidth(p.get_sample_size(self.record_format))
         wf.setframerate(self.sample_rate)
         wf.writeframes(b''.join(frames))
         wf.close()
-        logger.info("Wrote to wav successfully")
+        logging.info("Wrote to wav successfully")

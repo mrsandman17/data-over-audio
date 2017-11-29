@@ -1,11 +1,9 @@
-import math
-import wave
-import struct
 import binascii
+import logging
+import math
+import struct
+import wave
 
-#todo: replace globals with class variables
-#todo: add logging
-#todo: add tests
 
 class WavDataEncoder():
 
@@ -14,38 +12,38 @@ class WavDataEncoder():
         # Get the freq dict
         self.freq_dict = synchronizer.get_hex2freq_dict()
 
-    def encode(self, logger, data, output_file):
+    def encode(self, data, output_file):
         """
         Generates wave file of data
         :param data: the data to be encoded
         :param output_file: wave file name
         :return:
         """
-        logger.info("generating wav file based on data:\n'{0}'".format(data))
-        logger.info("Preparing headers for wav file: {0}".format(output_file))
+        logging.info("Generating wav file based on data:\n'{0}'".format(data))
+        logging.info("Preparing headers for wav file: {0}".format(output_file))
         wf = wave.open(output_file, "w")
         # Mono channel
         wf.setnchannels(1)
         # 2 bytes sample width
         wf.setsampwidth(2)
         wf.setframerate(self.synchronizer.sample_rate)
-        logger.debug("Converting data to hex".format(data))
+        logging.debug("Converting data to hex".format(data))
         # Convert data to hex representation
         hex_data = binascii.hexlify(data.encode()).decode()
-        logger.debug("Mapping hex data to frequencies")
+        logging.debug("Mapping hex data to frequencies")
         # freq_lst holds the freq(Hz) for each hex digit
         freq_lst = []
         # Convert str to matching freq
         for c in hex_data:
             # Convert each char to a freq and add to freq_list
             freq_lst.append(self.freq_dict['0x' + c])
-        logger.debug("Inserting sync frequencies")
+        logging.debug("Inserting sync frequencies")
         freq_lst = self.synchronizer.insert_sync_freq(freq_lst)
-        logger.info("Frequencies to write:\n{0}".format(str(freq_lst)))
-        logger.info("Writing {0} frequencies to wav (as sin waves)".format(len(freq_lst)))
+        logging.info("Frequencies to write:\n{0}".format(str(freq_lst)))
+        logging.info("Writing {0} frequencies to wav (as sin waves)".format(len(freq_lst)))
         # Write all the frequencies in freq_lst to wf
         self._write_frequencies(wf, freq_lst)
-        logger.info("Frequencies written successfully")
+        logging.info("Frequencies written successfully")
         wf.close()
 
     def _write_frequencies(self, wf, freq_lst):
