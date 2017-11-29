@@ -12,14 +12,14 @@ from synchronizer import Synchronizer
 #todo: add logging
 #todo: add tests
 
-class WavDataGenerator():
+class WavDataEncoder():
 
     def __init__(self, synchronizer):
         self.synchronizer = synchronizer
         # Get the freq dict
         self.freq_dict = synchronizer.get_hex2freq_dict()
 
-    def generate(self, logger, data, output_file):
+    def encode(self, logger, data, output_file):
         """
         Generates wave file of data
         :param data: the data to be encoded
@@ -75,32 +75,3 @@ class WavDataGenerator():
         sample_angle = sample_time * angular_freq
         # Get the sin() and pack into little endian 2 byte int
         return struct.pack('<h', int(32767 * math.sin(sample_angle)))
-
-
-
-def main():
-    logger = setup_logging("log_config.json")
-    logger.debug("Initializing")
-    output_file = r"generated_audio_samples\sample_safe_config.wav"
-    # set up synchronizer
-    synchronizer = Synchronizer(sample_rate=44100,
-                                single_freq_duration=0.5,
-                                min_freq=120,
-                                freq_difference=50,
-                                sync_freq=80,
-                                sync_repeat=2)
-    generator = WavDataGenerator(synchronizer)
-    generator.generate(logger, "poopi_butt_hole", output_file)
-
-def setup_logging(config_path):
-    """Setup logging configuration
-    """
-    if os.path.exists(config_path):
-        with open(config_path, 'rt') as f:
-            config = json.load(f)
-        logging.config.dictConfig(config)
-    else:
-        raise FileNotFoundError("config_path not found")
-    return logging.getLogger()
-if __name__ == "__main__":
-    main()

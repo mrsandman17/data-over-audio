@@ -1,0 +1,1 @@
+python example_decoder.py 20 "generated_samples\rec_sample_safe_config.wav"

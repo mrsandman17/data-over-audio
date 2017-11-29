@@ -1,0 +1,1 @@
+python example_encoder.py "Mr Poopi Butt Hole" "generated_samples\sample_safe_config.wav"

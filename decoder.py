@@ -2,19 +2,13 @@
 
 import matplotlib.pyplot as plt
 from scipy.fftpack import fft
-import pyaudio
 import wave
 import struct
 import numpy as np
 import binascii
-import logging
-import os
-import logging.config
-import json
-from recorder import Recorder
-from synchronizer import Synchronizer
 
-class WavDataReceiver():
+
+class WavDataDecoder():
 
     def __init__(self, synchronizer, sync_search_chunk, sync_freq_deviation, auto_correct_frequencies):
         self.synchronizer = synchronizer
@@ -26,7 +20,7 @@ class WavDataReceiver():
         # Get the freq dict: {Freq: hex}
         self.hex_dict = synchronizer.get_freq2hex_dict()
 
-    def receive(self, logger, wav_file):
+    def decode(self, logger, wav_file):
         logger.info("receiving data from {0}".format(wav_file))
         # Read the bytes data to frequencies
         freq_lst = self._read_frequencies(logger, wav_file)
@@ -142,45 +136,6 @@ class WavDataReceiver():
         return freq_in_hertz
 
 
-def main():
-    logger = setup_logging("log_config.json")
-    logger.debug("Initializing")
-    output_file = r"generated_audio_samples\rec_sample_safe_config.wav"
-    wav_recorder = Recorder(record_format=pyaudio.paInt16,
-                            channels=1,
-                            sample_rate=44100,
-                            chunk_size=1024)
-    synchronizer = Synchronizer(sample_rate=44100,
-                                single_freq_duration=0.5,
-                                min_freq=120,
-                                freq_difference=50,
-                                sync_freq=80,
-                                sync_repeat=2)
-    data_receiver = WavDataReceiver(synchronizer,
-                                    sync_search_chunk=10000,
-                                    sync_freq_deviation=5,
-                                    auto_correct_frequencies=True)
-    # Record
-    wav_recorder.record_to_wav(logger, output_file, 20)
-    data = data_receiver.receive(logger, output_file)
-    logger.info("Received data:\n{0}".format(data))
-
-def setup_logging(config_path):
-    """Setup logging configuration
-
-    """
-    if os.path.exists(config_path):
-        with open(config_path, 'rt') as f:
-            config = json.load(f)
-        logging.config.dictConfig(config)
-    else:
-        raise FileNotFoundError("config_path not found")
-    return logging.getLogger()
-
-if __name__ == "__main__":
-    main()
-
-#todo: add logs to generator
 #todo: split to example files
 #todo: configure logger so it isn't required
 #todo: review comments
