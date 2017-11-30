@@ -25,14 +25,18 @@ class Decoder():
         # Read the bytes data to frequencies
         logging.info("opening wav file")
         with wave.open(wav_file, 'r') as wav_file:
-            # Read to payload and look for sync freq
-            logging.info("Seeking sync freq in data")
+            logging.info("Seeking payload")
+            # Read to payload by looking for sync freq
             frames_red = self._get_payload_start(wav_file)
-            # Read data
             logging.info("Reading payload frequencies")
-            payload_freq_lst = self._get_payload(wav_file, wav_file.getnframes() - frames_red)
-            logging.info("Frequencies red: \n{0}".format(str(payload_freq_lst)))
-        payload = self._to_string(payload_freq_lst)
+            if frames_red != wav_file.getnframes():
+                # Get the payload
+                payload_freq_lst = self._get_payload(wav_file, wav_file.getnframes() - frames_red)
+                logging.info("Frequencies red: \n{0}".format(str(payload_freq_lst)))
+                payload = self._to_string(payload_freq_lst)
+            else:
+                logging.info("Could not locate payload")
+                return ""
         return payload
 
     def _to_string(self, freq_lst):
@@ -48,43 +52,6 @@ class Decoder():
         logging.info("Conversion Completed")
         return assembled_payload
 
-    def _to_ascii(self, hex_data):
-        """
-        :param hex_data: Data to be converted
-        :return: data in ascii
-        """
-        logging.info("Converting to ascii chars")
-        # convert chars in hex format back to ascii
-        assembled_data = ""
-        for char_hex in hex_data:
-            try:
-                assembled_data += binascii.unhexlify(char_hex).decode()
-            except UnicodeDecodeError:
-                # The hex digits couldn't be converted to an ascii character
-                logging.warning("Couldn't convert hexdigits: '{0}' to char (Unclear Frequency?)".format(char_hex))
-                # Drop unknown char
-                assembled_data += "?c?"
-        return assembled_data
-
-    def _to_hex(self, freq_lst):
-        """
-        Converts a freq list to a list of 2 sequential hex characters.
-        Each frequency = hex character
-        Freq -> Hex mapping is achieved with self.hex_dict
-        :param freq_lst: List to to be converted
-        :return: list of hex pairs
-        """
-        hex_data = ""
-        logging.info("Looking for legal frequencies")
-        logging.info("Auto correcting frequencies")
-        for freq in freq_lst:
-            # Get the closest freq in hex_dict
-            corrected_freq = min(self.hex_dict.keys(), key=lambda possible_freq: abs(possible_freq - freq))
-            hex_data += self.hex_dict[corrected_freq]
-        logging.info("Converting frequencies to hex digits")
-        # Join 2 consecutive hex digits (2 hex digits = char)
-        hexed_data = [i + j for i,j in zip(hex_data[::2], hex_data[1::2])]
-        return hexed_data
 
     def _get_payload_start(self, wav_file):
         """
@@ -105,28 +72,28 @@ class Decoder():
                 data_size = (self.synchronizer.sync_search_chunk * self.synchronizer.sync_repeat) - self.synchronizer.sync_search_chunk
                 wav_file.readframes(data_size)
                 frames_red += data_size
+                logging.info("Payload Found after {0} frames".format(str(frames_red)))
                 return frames_red
         return frames_red
 
     def _get_payload(self, wav_file, frames_num):
         """
-        reads from frames_num to sync freq.
+        reads from frames_num to sync freq that signal the end of the payload.
         :param wav_file:
-        :param frames_num: THe frame count where the payload starts
+        :param frames_num: The frame count where the payload starts
         :return: A list of the payload frequencies.
         """
-        # Change the chunk of data to read
+        # set the chunk of data to read
         data_size = int(self.synchronizer.sample_rate * self.synchronizer.single_freq_duration)
-        # Read data frames
         prev_freq = 0
         freq_lst = []
         for freq in self._get_frequencies(wav_file, data_size, frames_num):
             if prev_freq == self.synchronizer.sync_freq and freq == self.synchronizer.sync_freq:
-                # reached end of data
+                # reached end of payload
                 break
             prev_freq = freq
             if freq != self.synchronizer.sync_freq:
-                # freq is a data frequency
+                # freq is a payload frequency
                 freq_lst.append(int(freq))
         return freq_lst
 
@@ -163,3 +130,39 @@ class Decoder():
         freq = freqs[idx]
         freq_in_hertz = abs(freq * self.synchronizer.sample_rate)
         return freq_in_hertz
+
+    def _to_hex(self, freq_lst):
+        """
+        Converts a freq list to a string of matching hex digits.
+        Each frequency = hex character
+        Freq -> Hex mapping is achieved with self.hex_dict
+        :param freq_lst: List to to be converted
+        :return: list of hex pairs
+        """
+        hex_data = ""
+        logging.info("Converting frequencies to hex digits")
+        for freq in freq_lst:
+            # Try to auto Correct frequencies, get the closest freq in hex_dict
+            corrected_freq = min(self.hex_dict.keys(), key=lambda possible_freq: abs(possible_freq - freq))
+            hex_data += self.hex_dict[corrected_freq]
+        return hex_data
+
+    def _to_ascii(self, hex_data):
+        """
+        :param hex_data: String hex Data to be converted
+        :return: data in ascii
+        """
+        logging.info("Converting to ascii chars")
+        # Join 2 consecutive hex digits (2 hex digits = char)
+        hex_data = [i + j for i,j in zip(hex_data[::2], hex_data[1::2])]
+        # convert chars in hex format back to ascii
+        assembled_data = ""
+        for char_hex in hex_data:
+            try:
+                assembled_data += binascii.unhexlify(char_hex).decode()
+            except UnicodeDecodeError:
+                # The hex digits couldn't be converted to an ascii character
+                logging.warning("Couldn't convert hexdigits: '{0}' to char (Unclear Frequency?)".format(char_hex))
+                # Drop unknown char
+                assembled_data += "?c?"
+        return assembled_data

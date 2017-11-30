@@ -17,7 +17,8 @@ def main():
     encoder.encode(data, output_file)
 
 def setup_logging(config_path):
-    """Setup logging configuration
+    """
+    Setup logging configuration
     """
     if os.path.exists(config_path):
         with open(config_path, 'rt') as f:
