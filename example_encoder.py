@@ -5,6 +5,7 @@ import os
 import sys
 
 from encoder import Encoder
+from synchronizer import Synchronizer
 
 
 def main():
@@ -12,7 +13,7 @@ def main():
     output_file = sys.argv[2]
     setup_logging("log_config.json")
     logging.info("Initializing")
-    encoder = Encoder()
+    encoder = Encoder(synchronizer=Synchronizer())
     encoder.encode(data, output_file)
 
 def setup_logging(config_path):

@@ -5,7 +5,6 @@ import struct
 import wave
 
 import utils
-from synchronizer import Synchronizer
 
 # Channel_num in wav file. Set to mono, only mono channels are supported
 CHANNELS = 1
@@ -14,9 +13,10 @@ SAMPLE_WIDTH = 2
 
 class Encoder():
 
-    def __init__(self):
+    def __init__(self, synchronizer):
+        self.synchronizer = synchronizer
         # Get the freq dict
-        self.freq_dict = utils.get_hex2freq_dict(Synchronizer.min_freq, Synchronizer.freq_difference)
+        self.freq_dict = utils.get_hex2freq_dict(self.synchronizer.min_freq, self.synchronizer.freq_difference)
 
     def encode(self, data, output_file):
         """
@@ -31,7 +31,7 @@ class Encoder():
             # Setup wave file headers
             wave_file.setnchannels(CHANNELS)
             wave_file.setsampwidth(SAMPLE_WIDTH)
-            wave_file.setframerate(Synchronizer.sample_rate)
+            wave_file.setframerate(self.synchronizer.sample_rate)
             logging.info("Converting data to hex".format(data))
             # Convert data to hex representation
             hex_data = binascii.hexlify(data.encode()).decode()
@@ -40,12 +40,13 @@ class Encoder():
             # Convert each char to a freq and add to freq_list
             freq_lst = [self.freq_dict[c] for c in hex_data]
             logging.info("Inserting sync frequencies")
-            freq_lst = self._get_synchronized_frequency_list(Synchronizer.sync_freq, Synchronizer.sync_repeat, freq_lst)
+            freq_lst = self._get_synchronized_frequency_list(self.synchronizer.sync_freq, self.synchronizer.sync_repeat, freq_lst)
             logging.info("Frequencies to write:\n{0}".format(str(freq_lst)))
             logging.info("Writing {0} frequencies to wav (as sin waves)".format(len(freq_lst)))
             # Write all the frequencies in freq_lst to wave_file
             self._write_frequencies(wave_file, freq_lst)
             logging.info("Frequencies written successfully")
+        return
 
     def _write_frequencies(self, wave_file, freq_lst):
         """
@@ -58,7 +59,7 @@ class Encoder():
         for freq in freq_lst:
             angular_freq = freq * math.pi * 2
             # Generate samples of the sin wave for freq
-            for sample_num in range(int(Synchronizer.sample_rate * Synchronizer.single_freq_duration)):
+            for sample_num in range(int(self.synchronizer.sample_rate * self.synchronizer.single_freq_duration)):
                 sample_data = self._generate_sample(sample_num, angular_freq)
                 wave_file.writeframesraw(sample_data)
 
@@ -67,7 +68,7 @@ class Encoder():
         Generates a single sample
         :return: packed 2 byte sin() result
         """
-        sample_time = sample_num / Synchronizer.sample_rate
+        sample_time = sample_num / self.synchronizer.sample_rate
         sample_angle = sample_time * angular_freq
         # Get the sin() and pack into little endian 2 byte int
         return struct.pack('<h', int(32767 * math.sin(sample_angle)))

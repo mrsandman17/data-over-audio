@@ -16,11 +16,12 @@ def main():
     output_file = sys.argv[2]
     setup_logging("log_config.json")
     logging.info("Initializing")
+    synchronizer = Synchronizer()
     wav_recorder = Recorder(record_format=pyaudio.paInt16,
                             channels=1,
-                            sample_rate=Synchronizer.sample_rate,
+                            sample_rate=synchronizer.sample_rate,
                             chunk_size=1024)
-    data_decoder = Decoder()
+    data_decoder = Decoder(synchronizer=synchronizer)
     wav_recorder.record_to_wav(output_file, record_time)
     data = data_decoder.decode(output_file)
     logging.info("Received data:\n{0}".format(data))
