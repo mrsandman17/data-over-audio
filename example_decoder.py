@@ -22,7 +22,7 @@ def main():
                             sample_rate=synchronizer.sample_rate,
                             chunk_size=1024)
     data_decoder = Decoder(synchronizer=synchronizer)
-    # wav_recorder.record_to_wav(output_file, record_time)
+    wav_recorder.record_to_wav(output_file, record_time)
     data = data_decoder.decode(output_file)
     logging.info("Received data:\n{0}".format(data))
 
