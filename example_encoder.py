@@ -4,7 +4,7 @@ import logging.config
 import os
 import sys
 
-from encoder import WavDataEncoder
+from encoder import Encoder
 
 
 def main():
@@ -12,7 +12,7 @@ def main():
     output_file = sys.argv[2]
     setup_logging("log_config.json")
     logging.debug("Initializing")
-    encoder = WavDataEncoder()
+    encoder = Encoder()
     encoder.encode(data, output_file)
 
 def setup_logging(config_path):

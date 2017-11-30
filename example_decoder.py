@@ -6,7 +6,7 @@ import sys
 
 import pyaudio
 
-from decoder import WavDataDecoder
+from decoder import Decoder
 from recorder import Recorder
 
 
@@ -19,7 +19,7 @@ def main():
                             channels=1,
                             sample_rate=44100,
                             chunk_size=1024)
-    data_decoder = WavDataDecoder(sync_search_chunk=10000,
+    data_decoder = Decoder(sync_search_chunk=10000,
                                     sync_freq_deviation=5,
                                     auto_correct_frequencies=True)
     wav_recorder.record_to_wav(output_file, record_time)

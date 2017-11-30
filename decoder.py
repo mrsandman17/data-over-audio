@@ -9,7 +9,7 @@ import utils
 from synchronizer import Synchronizer
 
 
-class WavDataDecoder():
+class Decoder():
 
     def __init__(self, sync_search_chunk, sync_freq_deviation, auto_correct_frequencies):
         # The chunk of data to look for the first sync frequency
@@ -37,11 +37,11 @@ class WavDataDecoder():
             for freq in freq_lst:
                 # Get the closest freq in hex_dict
                 corrected_freq = min(self.hex_dict.keys(), key=lambda possible_freq: abs(possible_freq - freq))
-                hexed_data += self.hex_dict[corrected_freq][2:]
+                hexed_data += self.hex_dict[corrected_freq]
         else:
             for freq in freq_lst:
                 try:
-                    hexed_data += self.hex_dict[freq][2:]
+                    hexed_data += self.hex_dict[freq]
                 except KeyError:
                     # Frequency is unmapped
                     logging.warning("Couldn't find exact frequency for: {0}".format(freq))
@@ -77,9 +77,8 @@ class WavDataDecoder():
         return freq_lst
 
     def _read_until_data(self, wav_file):
-        # read in small chunks to look for the sync frequency
+        # read in chunks to look for the sync frequency
         frames_red = 0
-        # Find the first sync freq
         for freq in self._receive_frames(wav_file, self.sync_search_chunk, wav_file.getnframes()):
             frames_red += self.sync_search_chunk
             # Calculate the allowed range

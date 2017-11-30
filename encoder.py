@@ -7,8 +7,12 @@ import wave
 import utils
 from synchronizer import Synchronizer
 
+# Channel_num in wav file. Set to mono, only mono channels are supported
+CHANNELS = 1
+# Bytes length of each sample in the wav file. Only width of 2 bytes is supported
+SAMPLE_WIDTH = 2
 
-class WavDataEncoder():
+class Encoder():
 
     def __init__(self):
         # Get the freq dict
@@ -24,10 +28,8 @@ class WavDataEncoder():
         logging.info("Generating wav file based on data:\n'{0}'".format(data))
         logging.info("Preparing headers for wav file: {0}".format(output_file))
         wf = wave.open(output_file, "w")
-        # Mono channel
-        wf.setnchannels(1)
-        # 2 bytes sample width
-        wf.setsampwidth(2)
+        wf.setnchannels(CHANNELS)
+        wf.setsampwidth(SAMPLE_WIDTH)
         wf.setframerate(Synchronizer.sample_rate)
         logging.debug("Converting data to hex".format(data))
         # Convert data to hex representation
@@ -38,7 +40,7 @@ class WavDataEncoder():
         # Convert str to matching freq
         for c in hex_data:
             # Convert each char to a freq and add to freq_list
-            freq_lst.append(self.freq_dict['0x' + c])
+            freq_lst.append(self.freq_dict[c])
         logging.debug("Inserting sync frequencies")
         freq_lst = utils.get_synchronized_frequency_list(Synchronizer.sync_freq, Synchronizer.sync_repeat, freq_lst)
         logging.info("Frequencies to write:\n{0}".format(str(freq_lst)))
