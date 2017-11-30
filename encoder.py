@@ -4,13 +4,15 @@ import math
 import struct
 import wave
 
+import utils
+from synchronizer import Synchronizer
+
 
 class WavDataEncoder():
 
-    def __init__(self, synchronizer):
-        self.synchronizer = synchronizer
+    def __init__(self):
         # Get the freq dict
-        self.freq_dict = synchronizer.get_hex2freq_dict()
+        self.freq_dict = utils.get_hex2freq_dict(Synchronizer.min_freq, Synchronizer.freq_difference)
 
     def encode(self, data, output_file):
         """
@@ -26,7 +28,7 @@ class WavDataEncoder():
         wf.setnchannels(1)
         # 2 bytes sample width
         wf.setsampwidth(2)
-        wf.setframerate(self.synchronizer.sample_rate)
+        wf.setframerate(Synchronizer.sample_rate)
         logging.debug("Converting data to hex".format(data))
         # Convert data to hex representation
         hex_data = binascii.hexlify(data.encode()).decode()
@@ -38,7 +40,7 @@ class WavDataEncoder():
             # Convert each char to a freq and add to freq_list
             freq_lst.append(self.freq_dict['0x' + c])
         logging.debug("Inserting sync frequencies")
-        freq_lst = self.synchronizer.insert_sync_freq(freq_lst)
+        freq_lst = utils.get_synchronized_frequency_list(Synchronizer.sync_freq, Synchronizer.sync_repeat, freq_lst)
         logging.info("Frequencies to write:\n{0}".format(str(freq_lst)))
         logging.info("Writing {0} frequencies to wav (as sin waves)".format(len(freq_lst)))
         # Write all the frequencies in freq_lst to wf
@@ -57,7 +59,7 @@ class WavDataEncoder():
         for freq in freq_lst:
             angular_freq = freq * math.pi * 2
             # Generate samples of the sin wave for freq
-            for sample_num in range(int(self.synchronizer.sample_rate * self.synchronizer.single_freq_duration)):
+            for sample_num in range(int(Synchronizer.sample_rate * Synchronizer.single_freq_duration)):
                 sample_data = self._generate_sample(sample_num, angular_freq)
                 wf.writeframesraw(sample_data)
 
@@ -66,7 +68,7 @@ class WavDataEncoder():
         Generates a single sample
         :return: packed 2 byte sin() result
         """
-        sample_time = sample_num / self.synchronizer.sample_rate
+        sample_time = sample_num / Synchronizer.sample_rate
         sample_angle = sample_time * angular_freq
         # Get the sin() and pack into little endian 2 byte int
         return struct.pack('<h', int(32767 * math.sin(sample_angle)))

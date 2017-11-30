@@ -8,7 +8,6 @@ import pyaudio
 
 from decoder import WavDataDecoder
 from recorder import Recorder
-from synchronizer import Synchronizer
 
 
 def main():
@@ -20,14 +19,7 @@ def main():
                             channels=1,
                             sample_rate=44100,
                             chunk_size=1024)
-    synchronizer = Synchronizer(sample_rate=44100,
-                                single_freq_duration=0.5,
-                                min_freq=120,
-                                freq_difference=50,
-                                sync_freq=80,
-                                sync_repeat=2)
-    data_decoder = WavDataDecoder(synchronizer,
-                                    sync_search_chunk=10000,
+    data_decoder = WavDataDecoder(sync_search_chunk=10000,
                                     sync_freq_deviation=5,
                                     auto_correct_frequencies=True)
     wav_recorder.record_to_wav(output_file, record_time)

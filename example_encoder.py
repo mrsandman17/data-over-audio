@@ -5,7 +5,6 @@ import os
 import sys
 
 from encoder import WavDataEncoder
-from synchronizer import Synchronizer
 
 
 def main():
@@ -13,14 +12,7 @@ def main():
     output_file = sys.argv[2]
     setup_logging("log_config.json")
     logging.debug("Initializing")
-    # set up synchronizer
-    synchronizer = Synchronizer(sample_rate=44100,
-                                single_freq_duration=0.5,
-                                min_freq=120,
-                                freq_difference=50,
-                                sync_freq=80,
-                                sync_repeat=2)
-    encoder = WavDataEncoder(synchronizer)
+    encoder = WavDataEncoder()
     encoder.encode(data, output_file)
 
 def setup_logging(config_path):

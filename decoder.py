@@ -5,18 +5,20 @@ import wave
 
 import numpy as np
 
+import utils
+from synchronizer import Synchronizer
+
 
 class WavDataDecoder():
 
-    def __init__(self, synchronizer, sync_search_chunk, sync_freq_deviation, auto_correct_frequencies):
-        self.synchronizer = synchronizer
+    def __init__(self, sync_search_chunk, sync_freq_deviation, auto_correct_frequencies):
         # The chunk of data to look for the first sync frequency
         self.sync_search_chunk = sync_search_chunk
         # Defines the range in which the sync frequency is accepted
         self.sync_freq_deviation = sync_freq_deviation
         self.auto_correct_frequencies = auto_correct_frequencies
         # Get the freq dict: {Freq: hex}
-        self.hex_dict = synchronizer.get_freq2hex_dict()
+        self.hex_dict = utils.get_hex2freq_dict(Synchronizer.min_freq, Synchronizer.freq_difference)
 
     def decode(self, wav_file):
         logging.info("receiving data from {0}".format(wav_file))
@@ -81,12 +83,12 @@ class WavDataDecoder():
         for freq in self._receive_frames(wav_file, self.sync_search_chunk, wav_file.getnframes()):
             frames_red += self.sync_search_chunk
             # Calculate the allowed range
-            min_sync_freq = self.synchronizer.sync_freq - self.sync_freq_deviation
-            max_sync_freq = self.synchronizer.sync_freq + self.sync_freq_deviation
+            min_sync_freq = Synchronizer.sync_freq - self.sync_freq_deviation
+            max_sync_freq = Synchronizer.sync_freq + self.sync_freq_deviation
             # If the freq matches allowed range
             if min_sync_freq < freq < max_sync_freq:
                 # Read until the beginning of data
-                data_size = (self.sync_search_chunk * self.synchronizer.sync_repeat) - self.sync_search_chunk
+                data_size = (self.sync_search_chunk * Synchronizer.sync_repeat) - self.sync_search_chunk
                 wav_file.readframes(data_size)
                 frames_red += data_size
                 return frames_red
@@ -94,16 +96,16 @@ class WavDataDecoder():
 
     def _read_data_frequencies(self, wav_file, frames_num):
         # Change the chunk of data to read
-        data_size = int(self.synchronizer.sample_rate * self.synchronizer.single_freq_duration)
+        data_size = int(Synchronizer.sample_rate * Synchronizer.single_freq_duration)
         # Read data frames
         prev_freq = 0
         freq_lst = []
         for freq in self._receive_frames(wav_file, data_size, frames_num):
-            if prev_freq == self.synchronizer.sync_freq and freq == self.synchronizer.sync_freq:
+            if prev_freq == Synchronizer.sync_freq and freq == Synchronizer.sync_freq:
                 # reached end of data
                 break
             prev_freq = freq
-            if freq != self.synchronizer.sync_freq:
+            if freq != Synchronizer.sync_freq:
                 # freq is a data frequency
                 freq_lst.append(int(freq))
         return freq_lst
@@ -130,5 +132,5 @@ class WavDataDecoder():
         # Find the peak in the coefficients
         idx = np.argmax(np.abs(w))
         freq = freqs[idx]
-        freq_in_hertz = abs(freq * self.synchronizer.sample_rate)
+        freq_in_hertz = abs(freq * Synchronizer.sample_rate)
         return freq_in_hertz
