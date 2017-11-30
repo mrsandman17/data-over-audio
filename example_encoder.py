@@ -11,7 +11,7 @@ def main():
     data = sys.argv[1]
     output_file = sys.argv[2]
     setup_logging("log_config.json")
-    logging.debug("Initializing")
+    logging.info("Initializing")
     encoder = Encoder()
     encoder.encode(data, output_file)
 

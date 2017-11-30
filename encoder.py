@@ -27,33 +27,30 @@ class Encoder():
         """
         logging.info("Generating wav file based on data:\n'{0}'".format(data))
         logging.info("Preparing headers for wav file: {0}".format(output_file))
-        wf = wave.open(output_file, "w")
-        wf.setnchannels(CHANNELS)
-        wf.setsampwidth(SAMPLE_WIDTH)
-        wf.setframerate(Synchronizer.sample_rate)
-        logging.debug("Converting data to hex".format(data))
-        # Convert data to hex representation
-        hex_data = binascii.hexlify(data.encode()).decode()
-        logging.debug("Mapping hex data to frequencies")
-        # freq_lst holds the freq(Hz) for each hex digit
-        freq_lst = []
-        # Convert str to matching freq
-        for c in hex_data:
+        with wave.open(output_file, "w") as wave_file:
+            # Setup wave file headers
+            wave_file.setnchannels(CHANNELS)
+            wave_file.setsampwidth(SAMPLE_WIDTH)
+            wave_file.setframerate(Synchronizer.sample_rate)
+            logging.info("Converting data to hex".format(data))
+            # Convert data to hex representation
+            hex_data = binascii.hexlify(data.encode()).decode()
+            logging.info("Mapping hex data to frequencies")
+            # freq_lst holds the freq(Hz) for each hex digit
             # Convert each char to a freq and add to freq_list
-            freq_lst.append(self.freq_dict[c])
-        logging.debug("Inserting sync frequencies")
-        freq_lst = utils.get_synchronized_frequency_list(Synchronizer.sync_freq, Synchronizer.sync_repeat, freq_lst)
-        logging.info("Frequencies to write:\n{0}".format(str(freq_lst)))
-        logging.info("Writing {0} frequencies to wav (as sin waves)".format(len(freq_lst)))
-        # Write all the frequencies in freq_lst to wf
-        self._write_frequencies(wf, freq_lst)
-        logging.info("Frequencies written successfully")
-        wf.close()
+            freq_lst = [self.freq_dict[c] for c in hex_data]
+            logging.info("Inserting sync frequencies")
+            freq_lst = self._get_synchronized_frequency_list(Synchronizer.sync_freq, Synchronizer.sync_repeat, freq_lst)
+            logging.info("Frequencies to write:\n{0}".format(str(freq_lst)))
+            logging.info("Writing {0} frequencies to wav (as sin waves)".format(len(freq_lst)))
+            # Write all the frequencies in freq_lst to wave_file
+            self._write_frequencies(wave_file, freq_lst)
+            logging.info("Frequencies written successfully")
 
-    def _write_frequencies(self, wf, freq_lst):
+    def _write_frequencies(self, wave_file, freq_lst):
         """
-        Creates a sin wave for each frequency in freq_lst and writes it to wf
-        :param wf:
+        Creates a sin wave for each frequency in freq_lst and writes it to wave_file
+        :param wave_file:
         :param freq_lst:
         :return:
         """
@@ -63,7 +60,7 @@ class Encoder():
             # Generate samples of the sin wave for freq
             for sample_num in range(int(Synchronizer.sample_rate * Synchronizer.single_freq_duration)):
                 sample_data = self._generate_sample(sample_num, angular_freq)
-                wf.writeframesraw(sample_data)
+                wave_file.writeframesraw(sample_data)
 
     def _generate_sample(self, sample_num, angular_freq):
         """
@@ -74,3 +71,13 @@ class Encoder():
         sample_angle = sample_time * angular_freq
         # Get the sin() and pack into little endian 2 byte int
         return struct.pack('<h', int(32767 * math.sin(sample_angle)))
+
+    def _get_synchronized_frequency_list(self, sync_freq, sync_repeat, freq_lst):
+        """
+        :param sync_freq: Synchronization frequency
+        :param sync_repeat: Times to repeat the synchronization frequency
+        :param freq_lst: List of frequencies to be edited
+        :return: Synchronized frequency list
+        """
+        sync_frequencies = [sync_freq] * sync_repeat
+        return sync_frequencies + freq_lst + sync_frequencies

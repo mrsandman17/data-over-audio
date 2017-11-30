@@ -19,14 +19,3 @@ def get_freq2hex_dict(min_freq, freq_difference):
     """
     digits = 16
     return {min_freq + freq_difference * digit: hex(digit)[2:] for digit in range(digits)}
-
-
-def get_synchronized_frequency_list(sync_freq, sync_repeat, freq_lst):
-    """
-    :param sync_freq: Synchronization frequency
-    :param sync_repeat: Times to repeat the synchronization frequency
-    :param freq_lst: List of frequencies to be edited
-    :return: Synchronized frequency list
-    """
-    sync_frequencies = [sync_freq] * sync_repeat
-    return sync_frequencies + freq_lst + sync_frequencies

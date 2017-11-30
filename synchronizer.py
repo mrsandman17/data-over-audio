@@ -1,6 +1,6 @@
 
 class Synchronizer():
-# Holds config shared between encoder and decoder
+# Holds config for the data transfer between encoder and decoder
     sample_rate =44100
     # The duration each freq is played
     single_freq_duration = 0.5
@@ -12,3 +12,7 @@ class Synchronizer():
     sync_freq = 80
     # Times to repeat the sync_freq
     sync_repeat = 2
+    # The chunk of data the decoder should look for the first sync frequency
+    sync_search_chunk = 10000
+    # Defines the range in which the decoder accepts the sync frequency
+    sync_freq_deviation = 5
