@@ -13,7 +13,7 @@ class Decoder():
     def __init__(self, synchronizer):
         self.synchronizer = synchronizer
         # Get the freq dict: {Freq: hex}
-        self.hex_dict = utils.get_hex2freq_dict(self.synchronizer.min_freq, self.synchronizer.freq_difference)
+        self.hex_dict = utils.get_freq2hex_dict(self.synchronizer.min_freq, self.synchronizer.freq_difference)
 
     def decode(self, wav_file):
         """
@@ -36,14 +36,23 @@ class Decoder():
         return payload
 
     def _to_string(self, freq_lst):
-        # Convert freq_lst to a assembled_payload
+        """
+        Converts a list of frequencies to ascii chars
+        :param freq_lst:
+        :return:
+        """
+        # Convert freq_lst to assembled_payload
         hex_data = self._to_hex(freq_lst)
         logging.info("Data as hex digits:\n{0}".format("".join(hex_data)))
-        assembled_data = self._to_ascii(hex_data)
+        assembled_payload = self._to_ascii(hex_data)
         logging.info("Conversion Completed")
-        return assembled_data
+        return assembled_payload
 
     def _to_ascii(self, hex_data):
+        """
+        :param hex_data: Data to be converted
+        :return: data in ascii
+        """
         logging.info("Converting to ascii chars")
         # convert chars in hex format back to ascii
         assembled_data = ""
@@ -51,16 +60,19 @@ class Decoder():
             try:
                 assembled_data += binascii.unhexlify(char_hex).decode()
             except UnicodeDecodeError:
-                logging.warning("Couldn't convert hexdigits: '{0}' to char (Unclear Frequency)".format(char_hex))
+                # The hex digits couldn't be converted to an ascii character
+                logging.warning("Couldn't convert hexdigits: '{0}' to char (Unclear Frequency?)".format(char_hex))
                 # Drop unknown char
                 assembled_data += "?c?"
         return assembled_data
 
     def _to_hex(self, freq_lst):
         """
-
-        :param freq_lst:
-        :return:
+        Converts a freq list to a list of 2 sequential hex characters.
+        Each frequency = hex character
+        Freq -> Hex mapping is achieved with self.hex_dict
+        :param freq_lst: List to to be converted
+        :return: list of hex pairs
         """
         hex_data = ""
         logging.info("Looking for legal frequencies")
@@ -75,6 +87,11 @@ class Decoder():
         return hexed_data
 
     def _get_payload_start(self, wav_file):
+        """
+        Finds and returns the frame number where the payload start
+        :param wav_file:
+        :return: the frame count
+        """
         # read in chunks to look for the sync frequency
         frames_red = 0
         for freq in self._get_frequencies(wav_file, self.synchronizer.sync_search_chunk, wav_file.getnframes()):
@@ -92,6 +109,12 @@ class Decoder():
         return frames_red
 
     def _get_payload(self, wav_file, frames_num):
+        """
+        reads from frames_num to sync freq.
+        :param wav_file:
+        :param frames_num: THe frame count where the payload starts
+        :return: A list of the payload frequencies.
+        """
         # Change the chunk of data to read
         data_size = int(self.synchronizer.sample_rate * self.synchronizer.single_freq_duration)
         # Read data frames
@@ -109,7 +132,13 @@ class Decoder():
 
     def _get_frequencies(self, wav_file, data_size, frames_num):
         """
-        Generates a freq
+        Generator.
+        Calculates the remaining frequencies number in wav_file.
+        Reads data_size frames.
+        Returns a frequency in Hz of the frames red.
+        :param wav_file:
+        :param data_size: size of each freq
+        :param frames_num: Where to begin to read
         """
         # Get the number of frequencies in the message
         frequencies_num = int(frames_num / data_size)
@@ -119,7 +148,10 @@ class Decoder():
 
     def _get_frequency(self, data, data_size):
         """
-        Converts bytes data (sin wave): data of size: data_size to a single frequency in hertz
+        Generates a frequency from raw bytes data using fft
+        :param data: raw bytes data from wav file
+        :param data_size: size of bytes data
+        :return: A frequency (Hz)
         """
         # Convert data_size frames of byte data (Short)
         data = struct.unpack('{n}h'.format(n=data_size), data)
